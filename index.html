@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adam Friedman's lede project</title>
+    <link href="https://unpkg.com/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        .bg-image {
+            height: 90vh; /* 90% of the viewport height */
+            width: 100%;
+            position: relative;
+            z-index: -1;
+            filter: grayscale(100%);
+        }
+
+        .bg-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: var(--bg-opacity, 1); /* Allowing opacity adjustment */
+        }
+
+        .overlay-content {
+            position: absolute;
+            top: 50%; /* Adjust this value to move the entire content higher or lower */
+            width: 100%;
+            text-align: center;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+
+        .overlay-text {
+            font-size: 3em; /* Increased font size */
+            font-weight: bold;
+            background: rgba(0, 0, 0, 0.5); /* Semi-transparent background for better visibility */
+            display: inline-block;
+            padding: 10px 20px;
+            position: absolute; /* Make the text positionable */
+            top: 50%; /* Adjust this value to move the text box higher or lower */
+            left: 50%; /* Center horizontally */
+            transform: translate(-50%, -50%); /* Centering adjustment */
+            width: auto; /* Adjust width as needed or set a specific width */
+            max-width: 100%; /* Ensure it doesn't exceed the container's width */
+            white-space: nowrap; /* Prevent text from wrapping to the next line */
+        }
+
+        .scroll-button {
+            background-color: #050505; /* Example button color */
+            border: none;
+            color: white;
+            padding: 15px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
+            margin: 10px auto 0 auto; /* Center the button with top margin */
+            transition: opacity 0.5s ease-in-out, visibility 0.5s ease-in-out; /* Smooth transition */
+        }
+
+        .scroll-button.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .scroll-button:hover {
+            background-color: #0c0c0c;
+        }
+
+        .blank-section {
+            height: 15vh; /* Reduced height of the blank section */
+            background-color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start; /* Align items to the top */
+            align-items: center;
+        }
+
+        .search-section {
+            height: auto; /* Allow the section to grow based on content */
+            background-color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center; /* Center items vertically */
+            align-items: center;
+            padding-top: 10px; /* Optional: Add some padding to move the search bar slightly down */
+            position: relative; /* Ensure suggestions container is positioned correctly */
+            padding-bottom: 500px; /* Increased padding to provide more space below the search bar */
+        }
+
+        .search-title {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .search-input {
+            padding: 10px;
+            font-size: 1.2em;
+            width: 60%;
+            border: 2px solid #ddd; /* Ensure border is consistent */
+            border-radius: 5px 5px 0 0; /* Only round the top corners */
+            outline: none; /* Remove the default focus outline */
+            position: relative; /* Relative positioning for better alignment with suggestions */
+        }
+
+        .suggestions-container {
+            border: 0px solid #ddd; /* Match the border with the search bar */
+            border-top: none; /* Remove the top border to connect with the search bar */
+            border-radius: 0 0 5px 5px; /* Only round the bottom corners */
+            background-color: #ffffff;
+            width: 60%;
+            max-height: 200px; /* Limit height if many suggestions */
+            overflow-y: auto; /* Scroll if more suggestions */
+            position: absolute; /* Position it below the search bar */
+            z-index: 1000; /* Ensure it's above other elements */
+            top: 20%; /* Ensure it appears below the search bar */
+        }
+
+        .suggestion-item {
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .suggestion-item:hover {
+            background-color: #f0f0f0;
+        }
+
+        .suggestion-item:last-child {
+            border-bottom: none; /* Remove bottom border for the last item */
+        }
+
+        .candidate-info {
+            margin-top: 20px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f6f3f3;
+            width: 60%;
+            margin-bottom: 50px; /* Ensure there is space below the info section */
+            display: flex;
+        }
+
+        .candidate-details {
+            display: block; /* Ensures vertical layout */
+        }
+
+        .donation-table {
+            width: 100%; /* Ensure the table fits within its container */
+            table-layout: fixed; /* Fixed layout for equal column widths */
+            margin-top: 20px;
+            border-collapse: collapse; /* Ensure table borders are collapsed for a cleaner look */
+        }
+
+        .donation-table th, .donation-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+            white-space: normal; /* Allow text to wrap */
+            overflow: hidden; /* Hide overflow content */
+            text-overflow: ellipsis; /* Add ellipsis for overflowing content */
+        }
+
+        .donation-table th {
+            background-color: #f4f4f4;
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+        }
+
+        .donation-table td {
+            background-color: #ffffff;
+        }
+
+        .donation-grid {
+            width: 60%; /* Maintain consistent width with other tables */
+            margin-bottom: 50px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <!-- Background Image with Overlay -->
+    <div class="bg-image relative">
+        <img src="photos/tn-capitol-image-front.jpeg" alt="Tennessee Capitol" class="w-full h-full object-cover grayscale">
+        <div class="overlay-content">
+            <div class="overlay-text">
+                Who's funding Tennessee's politics?
+            </div>
+        </div>
+    </div>
+
+    <!-- First Blank section -->
+    <div class="blank-section" id="blank-section">
+        <button class="scroll-button" id="scrollButton" onclick="scrollToSection()">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+        </button>
+    </div>
+
+    <!-- Search Section on the next blank white page -->
+    <div class="search-section" id="search-section">
+        <p class="search-title">Search a Tennessee politician's name</p>
+        <input type="text" id="searchBar" placeholder="Search..." class="search-input">
+        <div id="suggestions" class="suggestions-container"></div>
+        <div id="candidateInfo" class="candidate-info" style="display:none;">
+            <!-- Candidate details will be populated here -->
+        </div>
+        <div id="donationTables" class="donation-tables"></div>
+    </div>
+
+    <script>
+        function scrollToSection() {
+            document.getElementById('blank-section').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Hide scroll button on scroll
+        window.addEventListener('scroll', function() {
+            const scrollButton = document.getElementById('scrollButton');
+            const searchSection = document.getElementById('search-section').offsetTop;
+
+            if (window.scrollY > searchSection - window.innerHeight / 3) {
+                scrollButton.classList.add('hidden');
+            } else {
+                scrollButton.classList.remove('hidden');
+            }
+        });
+
+        // Load and filter candidates from candidates.json
+        async function loadCandidates(query) {
+            try {
+                const response = await fetch('candidates.json');
+                const data = await response.json();
+
+                // Filter candidate names based on the query, matching the start of the name
+                const filteredCandidates = data.filter(candidate =>
+                    candidate['Candidate name'].toLowerCase().startsWith(query.toLowerCase())
+                ).slice(0, 5); // Limit to 5 suggestions
+
+                // Display the autocomplete suggestions
+                displaySuggestions(filteredCandidates);
+            } catch (error) {
+                console.error('Error loading or processing the JSON file:', error);
+            }
+        }
+
+        function displaySuggestions(candidates) {
+            const suggestionsContainer = document.getElementById('suggestions');
+            suggestionsContainer.innerHTML = ''; // Clear previous suggestions
+
+            candidates.forEach(candidate => {
+                const suggestionItem = document.createElement('div');
+                suggestionItem.classList.add('suggestion-item');
+                suggestionItem.textContent = candidate['Candidate name'];
+
+                // Handle click event for selecting a suggestion
+                suggestionItem.addEventListener('click', function () {
+                    document.getElementById('searchBar').value = candidate['Candidate name'];
+                    suggestionsContainer.innerHTML = ''; // Clear suggestions after selection
+                    displayCandidateInfo(candidate); // Display full candidate info
+                    loadDonationTotals(candidate['Candidate name']); // Load and display donation totals in a table
+                    loadDonationsByDonor(candidate['Candidate name']); // Load and display donations by donor in a new table
+                });
+
+                suggestionsContainer.appendChild(suggestionItem);
+            });
+        }
+
+        function displayCandidateInfo(candidate) {
+            const candidateInfoDiv = document.getElementById('candidateInfo');
+            candidateInfoDiv.style.display = 'block'; // Make sure the info section is visible
+
+            candidateInfoDiv.innerHTML = `
+                <div id="candidateDetails" class="candidate-details">
+                    <h3>${candidate['Candidate name']}</h3>
+                    <p><strong>Current Official:</strong> ${candidate['Current official']}</p>
+                    <p><strong>Party:</strong> ${candidate['Party']}</p>
+                    <p><strong>City:</strong> ${candidate['City']}</p>
+                    <p><strong>Election Results:</strong> ${candidate['Election results and every time they ran for office']}</p>
+                </div>
+            `;
+        }
+
+        async function loadDonationTotals(candidateName) {
+            try {
+                const response = await fetch('donation_totals.json');
+                const data = await response.json();
+
+                // Filter the data to only include donations for the selected candidate
+                const candidateDonations = data.filter(donation =>
+                    donation['name-of-recipient-of-donation'].toLowerCase() === candidateName.toLowerCase()
+                );
+
+                if (candidateDonations.length > 0) {
+                    displayDonationTables(candidateDonations);
+                } else {
+                    displayNoDonationInfo();
+                }
+            } catch (error) {
+                console.error('Error loading or processing the JSON file:', error);
+            }
+        }
+
+        function formatAsDollar(amount) {
+            if (!amount || amount === 'N/A') return 'N/A';
+            return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+        }
+
+        function displayDonationTables(donations) {
+            const donationTablesDiv = document.getElementById('donationTables');
+            donationTablesDiv.innerHTML = ''; // Clear any previous content
+
+            // Define year groups
+            const yearGroups = [
+                { label: '2009-2012', years: ['2009', '2010', '2011', '2012'] },
+                { label: '2013-2016', years: ['2013', '2014', '2015', '2016'] },
+                { label: '2017-2020', years: ['2017', '2018', '2019', '2020'] },
+                { label: '2021-2024', years: ['2021', '2022', '2023', '2024'] }
+            ];
+
+            // Calculate totals and sort donations by total amount
+            const sortedDonations = donations.map(donation => {
+                let totalSum = 0;
+                yearGroups.forEach(group => {
+                    const total = group.years.reduce((sum, year) => {
+                        return sum + (parseFloat(donation[year]) || 0);
+                    }, 0);
+                    totalSum += total;
+                });
+                return { ...donation, totalSum };
+            }); // Sort descending by total amount
+
+            let tableHTML = `
+                <div class="donation-grid">
+                    <table class="donation-table">
+                        <thead>
+                            <tr>
+                                <th>Place of Donation</th>
+                                ${yearGroups.map(group => `<th>${group.label}</th>`).join('')}
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            // Loop through sorted donations to create rows
+            sortedDonations.forEach(donation => {
+                const rowHTML = yearGroups.map(group => {
+                    const total = group.years.reduce((sum, year) => {
+                        return sum + (parseFloat(donation[year]) || 0);
+                    }, 0);
+                    return `<td>${formatAsDollar(total)}</td>`;
+                }).join('');
+
+                tableHTML += `
+                    <tr>
+                        <td>${donation['original-name-of-recipient-of-donation']}</td>
+                        ${rowHTML}
+                        <td>${formatAsDollar(donation.totalSum)}</td>
+                    </tr>
+                `;
+            });
+
+            tableHTML += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            // Append the single table to the donationTables div
+            donationTablesDiv.innerHTML += tableHTML;
+
+            document.getElementById('donationTables').style.display = 'block';
+        }
+
+        async function loadDonationsByDonor(candidateName) {
+            try {
+                const response = await fetch('donations_by_donor.json');
+                const data = await response.json();
+
+                // Filter the data to only include donations for the selected candidate
+                const donorDonations = data.filter(donation =>
+                    donation['name-of-recipient-of-donation'].toLowerCase() === candidateName.toLowerCase()
+                );
+
+                if (donorDonations.length > 0) {
+                    displayDonationsByDonorTable(donorDonations);
+                } else {
+                    displayNoDonorInfo();
+                }
+            } catch (error) {
+                console.error('Error loading or processing the JSON file:', error);
+            }
+        }
+
+        function displayDonationsByDonorTable(donations) {
+            const donationTablesDiv = document.getElementById('donationTables');
+            
+            // Define year groups similar to the donation_totals table
+            const yearGroups = [
+                { label: '2009-2012', years: ['2009', '2010', '2011', '2012'] },
+                { label: '2013-2016', years: ['2013', '2014', '2015', '2016'] },
+                { label: '2017-2020', years: ['2017', '2018', '2019', '2020'] },
+                { label: '2021-2024', years: ['2021', '2022', '2023', '2024'] }
+            ];
+
+            const donorGrouped = {};
+
+            // Group donations by donor
+            donations.forEach(donation => {
+                if (!donorGrouped[donation['name-of-donor']]) {
+                    donorGrouped[donation['name-of-donor']] = {};
+                }
+                yearGroups.forEach(group => {
+                    const total = group.years.reduce((sum, year) => {
+                        return sum + (parseFloat(donation[year]) || 0);
+                    }, 0);
+                    if (!donorGrouped[donation['name-of-donor']][group.label]) {
+                        donorGrouped[donation['name-of-donor']][group.label] = 0;
+                    }
+                    donorGrouped[donation['name-of-donor']][group.label] += total;
+                });
+            });
+
+            // Convert the object into an array and sort by the total sum
+            const sortedDonors = Object.entries(donorGrouped).sort((a, b) => {
+                const totalA = Object.values(a[1]).reduce((sum, val) => sum + val, 0);
+                const totalB = Object.values(b[1]).reduce((sum, val) => sum + val, 0);
+                return totalB - totalA; // Sort descending by total amount
+            });
+
+            let tableHTML = `
+                <div class="donation-grid">
+                    <table class="donation-table">
+                        <thead>
+                            <tr>
+                                <th>Donor Name</th>
+                                ${yearGroups.map(group => `<th>${group.label}</th>`).join('')}
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            // Create table rows for sorted donors
+            sortedDonors.forEach(([donor, groupedData]) => {
+                let totalSum = 0;
+                const rowHTML = yearGroups.map(group => {
+                    const total = groupedData[group.label];
+                    totalSum += total;
+                    return `<td>${formatAsDollar(total)}</td>`;
+                }).join('');
+
+                tableHTML += `
+                    <tr>
+                        <td>${donor}</td>
+                        ${rowHTML}
+                        <td>${formatAsDollar(totalSum)}</td>
+                    </tr>
+                `;
+            });
+
+            tableHTML += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            // Append the new table to the donationTables div
+            donationTablesDiv.innerHTML += tableHTML;
+
+            document.getElementById('donationTables').style.display = 'block';
+        }
+
+        function displayNoDonorInfo() {
+            const donationTablesDiv = document.getElementById('donationTables');
+            donationTablesDiv.innerHTML += `<p>No donor data available for this candidate.</p>`;
+        }
+
+        document.getElementById('searchBar').addEventListener('input', function () {
+            const query = this.value;
+            if (query) {
+                loadCandidates(query);
+            } else {
+                document.getElementById('suggestions').innerHTML = ''; // Clear suggestions if input is empty
+                document.getElementById('candidateInfo').style.display = 'none'; // Hide candidate info if input is empty
+                document.getElementById('donationTables').innerHTML = ''; // Clear donation tables if input is empty
+            }
+        });
+    </script>
+</body>
+</html>
